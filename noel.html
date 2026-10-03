@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Rogue Directive Loading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Composition : photo plein cadre (comme le lobby), logo centre en haut, dock verre en bas = bienvenue + progression + conseil, pastilles des zones au-dessus. 4 themes : ice (normal), hw, nl, su. */
+#stage.ice{--bg:#05080f;--scr:5,11,22;--card:#0e1727;--line:rgba(120,185,240,.28);--accent:#5aa9e6;--accent2:#9bd6ff;--accent3:#2f7fc4;--glow:90,169,230;--glow2:150,210,255;--text:#eef4fb;--dim:#9db0c4;--mute:#5d7088;--ok:#5fd0a0;--track:rgba(255,255,255,.12)}
+#stage.hw{--bg:#06020b;--scr:14,5,26;--card:#150a22;--line:rgba(255,130,40,.34);--accent:#ff7a1a;--accent2:#ffb347;--accent3:#c2410c;--glow:255,122,26;--glow2:138,63,252;--text:#fbeee0;--dim:#bba2cb;--mute:#7d6590;--ok:#8dff5a;--track:rgba(255,255,255,.12)}
+#stage.nl{--bg:#050a18;--scr:5,12,32;--card:#0b1630;--line:rgba(255,214,138,.34);--accent:#ff5a63;--accent2:#ffd98a;--accent3:#1e9e5a;--glow:255,214,138;--glow2:120,180,255;--text:#f6f3ee;--dim:#a9bad4;--mute:#62759a;--ok:#6fe39c;--track:rgba(255,255,255,.14)}
+#stage.su{--bg:#04141a;--scr:5,24,32;--card:#0a2530;--line:rgba(255,190,90,.36);--accent:#ffb02e;--accent2:#ffe08a;--accent3:#ff7a3c;--glow:255,176,46;--glow2:40,205,225;--text:#fffaf0;--dim:#b4d0d6;--mute:#6a9199;--ok:#6fe3c0;--track:rgba(255,255,255,.16)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#020408;overflow:hidden}
+body{font-family:'Poppins',system-ui,sans-serif;color:#eef4fb}
+#wrap{position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#020408}
+#stage{position:relative;width:1920px;height:1080px;flex:none;overflow:hidden;color:var(--text);background:var(--bg);transform-origin:center center}
+#stage .hwOnly,#stage .nlOnly,#stage .suOnly{display:none}
+#stage.hw .hwOnly,#stage.nl .nlOnly,#stage.su .suOnly{display:block}
+
+/* ---------- photo ---------- */
+.bgimg{position:absolute;left:-50px;top:-30px;width:2020px;height:1140px;background-size:cover;background-position:center;animation:kb 46s ease-in-out infinite alternate}
+#stage.ice .bgimg{background-image:url(img/normal.webp)}
+#stage.hw .bgimg{background-image:url(img/halloween.webp)}
+#stage.nl .bgimg{background-image:url(img/noel.webp)}
+#stage.su .bgimg{background-image:url(img/ete.webp)}
+@keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.06) translate(-18px,-8px)}}
+.shade{position:absolute;left:0;top:0;width:1920px;height:1080px;background:radial-gradient(ellipse at 50% 38%,transparent 40%,rgba(var(--scr),.55) 100%)}
+.scrim{position:absolute;left:0;bottom:0;width:1920px;height:560px;background:linear-gradient(to bottom,rgba(var(--scr),0),rgba(var(--scr),.82) 70%,rgba(var(--scr),.94))}
+.topscrim{position:absolute;left:0;top:0;width:1920px;height:200px;background:linear-gradient(to bottom,rgba(var(--scr),.55),rgba(var(--scr),0))}
+#bgc{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.beams{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;pointer-events:none}
+.beam{position:absolute;top:-260px;width:200px;height:1500px;background:linear-gradient(to bottom,rgba(var(--glow2),.16),transparent 75%);transform:rotate(16deg);transform-origin:top center;animation:beam 13s ease-in-out infinite alternate}
+#stage.hw .beam{opacity:.3}
+@keyframes beam{from{opacity:.2;transform:rotate(13deg)}to{opacity:.9;transform:rotate(21deg)}}
+.layer{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;overflow:hidden}
+.rise{animation:rise 1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.fadeIn{animation:fadeIn 1.4s ease both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- haut ---------- */
+.top{position:absolute;left:80px;right:80px;top:84px;display:flex;justify-content:space-between;align-items:flex-start;z-index:6}
+.chips{display:flex;gap:12px}
+.chip{display:flex;align-items:center;gap:10px;background:rgba(var(--scr),.66);border:1px solid var(--line);border-radius:999px;padding:9px 20px;font-size:15px;color:var(--dim)}
+.chip b{color:var(--text);font-weight:600}
+.chip.ed{border-color:var(--accent);color:var(--accent2);box-shadow:0 0 22px rgba(var(--glow),.28)}
+.logoBox{position:absolute;left:810px;top:56px;width:300px;height:300px;z-index:5}
+.halo{position:absolute;left:-70px;top:-50px;width:440px;height:440px;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--scr),.55),rgba(var(--scr),.25) 60%,transparent);}
+.halo2{position:absolute;left:-60px;top:-40px;width:420px;height:420px;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--glow),.30),transparent);animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.08);opacity:1}}
+.fy,.fr{position:absolute;left:0;top:0;width:300px;height:300px}
+.fy{animation:flyY 5.5s ease-in-out infinite}
+.fr{animation:flyR 7s ease-in-out infinite}
+@keyframes flyY{0%,100%{transform:translateY(5px)}50%{transform:translateY(-12px)}}
+@keyframes flyR{0%,100%{transform:rotate(-2deg) scale(1)}50%{transform:rotate(2deg) scale(1.03)}}
+.logo{position:absolute;left:0;top:0;width:300px;height:300px;background:url(img/logo.png) center/contain no-repeat;filter:drop-shadow(0 16px 26px rgba(0,0,0,.55))}
+#stage.hw .logo{filter:hue-rotate(176deg) saturate(1.35) brightness(1.05) drop-shadow(0 16px 26px rgba(0,0,0,.6))}
+#stage.nl .logo{filter:hue-rotate(150deg) saturate(1.4) drop-shadow(0 16px 26px rgba(0,0,0,.6))}
+#stage.su .logo{filter:hue-rotate(196deg) saturate(1.5) brightness(1.08) drop-shadow(0 16px 26px rgba(0,0,0,.55))}
+.brandT{position:absolute;left:0;top:370px;width:1920px;text-align:center;z-index:5;pointer-events:none}
+.brandT b{display:block;font-size:20px;font-weight:700;letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.8)}
+.brandT span{display:block;margin-top:6px;font-size:13px;letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;color:var(--text);opacity:.8;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+
+/* ---------- zones ---------- */
+.zones{position:absolute;left:80px;right:80px;bottom:306px;z-index:5;display:flex;align-items:center;gap:12px}
+.zones .lbl{margin-right:8px}
+.lbl{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.z{background:rgba(var(--scr),.7);border:1px solid var(--line);border-radius:999px;padding:9px 20px;font-size:14px;color:var(--dim);transition:all .5s;white-space:nowrap}
+.z i{font-style:normal;color:var(--mute);margin-right:8px;font-size:12px;letter-spacing:.08em}
+.z.on{color:var(--text);border-color:var(--accent);background:rgba(var(--glow),.22);box-shadow:0 0 24px rgba(var(--glow),.35)}
+.z.on i{color:var(--accent2)}
+.zr{margin-left:auto}
+
+/* ---------- dock ---------- */
+.dock{position:absolute;left:80px;right:80px;bottom:70px;height:216px;z-index:6;display:flex;border-radius:26px;background:linear-gradient(160deg,rgba(var(--scr),.86),rgba(var(--scr),.74));border:1px solid var(--line);box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.dock:before{content:"";position:absolute;left:30px;right:30px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.dsec{position:relative;padding:28px 34px;min-width:0}
+.dsec+.dsec{border-left:1px solid var(--line)}
+.welcome{width:520px;display:flex;align-items:center;gap:26px}
+.av{flex:none;width:104px;height:104px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.av span{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:rgba(var(--scr),.95);font-size:44px;font-weight:700;color:var(--accent2)}
+.wt{min-width:0;flex:1}
+.wt .k{font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.wt .nm{margin:6px 0 6px;font-size:40px;line-height:1.1;font-weight:800;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wt .sub{font-size:15px;color:var(--dim)}
+.wt .sub b{color:var(--text);font-weight:600}
+.prog{flex:1}
+.prow{display:flex;align-items:flex-end;gap:30px}
+.pct{flex:none;font-size:84px;line-height:.9;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;background:linear-gradient(180deg,#fff,var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;min-width:210px}
+.pct small{font-size:34px;color:var(--accent);-webkit-text-fill-color:var(--accent);margin-left:4px}
+.pcol{flex:1;min-width:0;padding-bottom:4px}
+.ptop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.files{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);font-variant-numeric:tabular-nums}
+.files span{color:var(--dim);font-family:'Poppins',sans-serif;font-size:13px;margin-left:8px}
+.bar{position:relative;height:14px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid var(--line);overflow:hidden}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent2));box-shadow:0 0 18px rgba(var(--glow),.7)}
+.fill:after{content:"";position:absolute;right:0;top:0;bottom:0;width:80px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75));animation:glint 1.4s ease-in-out infinite}
+@keyframes glint{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
+.stripes{position:absolute;left:0;top:0;right:0;bottom:0;background:repeating-linear-gradient(115deg,transparent 0 10px,rgba(0,0,0,.25) 10px 14px)}
+.steps{display:flex;justify-content:space-between;margin-top:14px}
+.step{font-size:13px;color:var(--mute);transition:color .4s;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.step i{width:9px;height:9px;border-radius:50%;background:var(--track);transition:all .4s}
+.step.on{color:var(--text)}
+.step.on i{background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 1.1s ease-in-out infinite}
+.step.done{color:var(--dim)}
+.step.done i{background:var(--ok)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.log{margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;height:44px;overflow:hidden;position:relative}
+.logIn{position:absolute;left:0;right:0;bottom:0}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim);padding:2px 0;animation:in .35s ease-out}
+.log div b{color:var(--accent);font-weight:500;margin-right:12px}
+.log div:last-child{color:var(--text)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tip{width:450px}
+.tipHead{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+.tipIc{flex:none;width:52px;height:52px;border-radius:16px;background:rgba(var(--glow),.16);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:22px}
+.tipIc svg{width:34px;height:34px}
+.ic{display:none}
+#stage.ice .ic-ice,#stage.hw .ic-hw,#stage.nl .ic-nl,#stage.su .ic-su{display:block}
+.tipTx{transition:opacity .4s,transform .4s}
+.tipTx.out{opacity:0;transform:translateY(6px)}
+.tipTx h4{margin:0;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.tipTx p{margin:0;font-size:16px;line-height:1.55;color:var(--text)}
+.tipBar{position:absolute;left:34px;right:34px;bottom:22px;height:3px;border-radius:3px;background:var(--track);overflow:hidden}
+.tipBar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent2));transform-origin:left;animation:tbar 5.5s linear infinite}
+@keyframes tbar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.foot{position:absolute;left:80px;right:80px;bottom:26px;display:flex;justify-content:space-between;font-size:13px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;z-index:6}
+.foot kbd{font-family:'JetBrains Mono',monospace;background:rgba(var(--scr),.8);border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--text);margin:0 4px}
+.edge{position:absolute;left:0;bottom:0;height:5px;width:0;background:linear-gradient(90deg,var(--accent3),var(--accent2));box-shadow:0 0 20px var(--accent);z-index:9}
+.vign{position:absolute;left:0;top:0;width:1920px;height:1080px;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);pointer-events:none;z-index:8}
+
+/* ---------- Halloween ---------- */
+.fog{position:absolute;left:0;bottom:120px;width:3840px;height:420px;background-size:1920px 100%;background-repeat:repeat-x;background-image:radial-gradient(ellipse 520px 140px at 14% 86%,rgba(150,90,255,.2),transparent),radial-gradient(ellipse 640px 120px at 55% 96%,rgba(255,130,50,.14),transparent),radial-gradient(ellipse 460px 140px at 86% 80%,rgba(150,90,255,.16),transparent);animation:fog 90s linear infinite}
+@keyframes fog{from{transform:translateX(0)}to{transform:translateX(-1920px)}}
+.flash{position:absolute;left:0;top:0;width:1920px;height:1080px;background:#c9a8ff;opacity:0;animation:flash 15s linear infinite}
+@keyframes flash{0%,90%,100%{opacity:0}91%{opacity:.14}92%{opacity:0}93.5%{opacity:.08}95%{opacity:0}}
+.bat{position:absolute;left:-200px;animation:batx linear infinite}
+.bat div{animation:baty ease-in-out infinite alternate}
+.bat svg{display:block;width:100%;animation:flap .26s ease-in-out infinite alternate}
+@keyframes batx{from{transform:translateX(0)}to{transform:translateX(2300px)}}
+@keyframes baty{from{transform:translateY(-26px)}to{transform:translateY(26px)}}
+@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(.4)}}
+/* Noel */
+.bulb{position:absolute;width:10px;height:15px;margin:-2px 0 0 -5px;border-radius:50% 50% 55% 55%;animation:twink 2.4s ease-in-out infinite}
+@keyframes twink{0%,100%{opacity:1}50%{opacity:.35}}
+.snowfog{position:absolute;left:0;bottom:90px;width:1920px;height:300px;background:linear-gradient(to top,rgba(210,225,255,.16),transparent)}
+/* Ete */
+.sun{position:absolute;right:-140px;top:-200px;width:960px;height:960px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,244,200,.8),rgba(255,205,100,.32) 38%,transparent 72%);animation:breathe 6s ease-in-out infinite}
+.flare{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(255,220,140,.35),transparent)}
+
+/* ---------- barre maquette ---------- */
+.tools{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:50;display:flex;gap:6px;align-items:center;font-family:'Poppins',sans-serif;background:rgba(8,12,20,.88);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 8px;white-space:nowrap}
+.tools[hidden]{display:none}
+.tools button{background:transparent;color:#cdd8e6;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+.tools button:hover{border-color:#fff}
+.tools button:focus-visible{outline:2px solid #8fd0ff;outline-offset:2px}
+.tools button.act{background:#e6eef8;color:#05080f;border-color:#e6eef8;font-weight:600}
+.tools .sep{width:1px;height:18px;background:rgba(255,255,255,.18)}
+.tools label{font-size:12px;color:#9fb0c4;display:flex;align-items:center;gap:8px}
+.tools input[type=range]{width:90px}
+@media (prefers-reduced-motion:reduce){.bgimg,.fy,.fr,.halo2,.bat,.fog,.beam,.bulb,.sun{animation:none}}
+</style></head><body>
+
+<div id="wrap">
+<div id="stage" class="ice">
+  <div class="bgimg"></div>
+  <div class="shade"></div><div class="scrim"></div><div class="topscrim"></div>
+  <div class="beams" id="beams"></div>
+  <canvas id="bgc" width="960" height="540"></canvas>
+
+  <div class="layer hwOnly"><div class="fog"></div><div id="bats"></div><div class="flash"></div></div>
+  <div class="layer nlOnly"><div class="snowfog"></div></div>
+  <div class="layer nlOnly" id="garland"></div>
+  <div class="layer suOnly"><div class="sun"></div><div class="flare" style="left:1280px;top:250px;width:150px;height:150px"></div><div class="flare" style="left:1060px;top:420px;width:90px;height:90px"></div><div class="flare" style="left:760px;top:600px;width:200px;height:200px;opacity:.6"></div></div>
+
+  <div class="top rise" style="animation-delay:.1s">
+    <div class="chips">
+      <div class="chip">Map <b id="mapName">...</b></div>
+      <div class="chip">Slots <b id="plys">...</b></div>
+    </div>
+    <div class="chips">
+      <div class="chip ed" id="chipEd" style="display:none"><span id="edT">Édition</span> <b id="edB"></b></div>
+      <div class="chip">Mode <b>Redzone</b></div>
+    </div>
+  </div>
+
+  <div class="logoBox fadeIn"><div class="halo"></div><div class="halo2"></div><div class="fy"><div class="fr"><div class="logo"></div></div></div></div>
+  <div class="brandT rise" style="animation-delay:.3s"><b>Rogue Directive</b><span>PvE &amp; PvP Ops</span></div>
+
+  <div class="zones rise" style="animation-delay:.6s">
+    <span class="lbl">Zones en rotation</span><span id="zrow" style="display:contents"></span><span class="lbl zr" id="zlbl">Vote toutes les 15 minutes</span>
+  </div>
+
+  <div class="dock rise" style="animation-delay:.45s">
+    <div class="dsec welcome">
+      <div class="av"><span id="avL">K</span></div>
+      <div class="wt"><div class="k" id="wHi">Bienvenue,</div><div class="nm" id="wName">Kael Dorsey</div><div class="sub" id="wSub">Content de te revoir</div></div>
+    </div>
+    <div class="dsec prog">
+      <div class="prow">
+        <div class="pct"><span id="pct">0</span><small>%</small></div>
+        <div class="pcol">
+          <div class="ptop"><span class="lbl">Déploiement en cours</span><span class="files"><span style="margin:0;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px" id="files">0 / 0</span><span id="filesLbl">préparation</span></span></div>
+          <div class="bar"><div class="fill" id="fill"><div class="stripes"></div></div></div>
+          <div class="steps" id="steps"></div>
+        </div>
+      </div>
+      <div class="log"><div class="logIn" id="log"></div></div>
+    </div>
+    <div class="dsec tip">
+      <div class="tipHead">
+        <div class="tipIc">
+          <span class="ic ic-ice">?</span>
+          <svg class="ic ic-hw" viewBox="0 0 60 60"><path d="M27 13 Q29 3 38 4 Q33 8 33 14 Z" fill="#5a9a22"/><ellipse cx="30" cy="35" rx="27" ry="21" fill="#e8620c"/><ellipse cx="17" cy="35" rx="14" ry="20" fill="#ff7a1a"/><ellipse cx="43" cy="35" rx="14" ry="20" fill="#ff7a1a"/><ellipse cx="30" cy="35" rx="9" ry="21" fill="#ff9a3c"/><path d="M13 29 L22 29 L17.5 20 Z M38 29 L47 29 L42.5 20 Z M30 33 L26.5 39 L33.5 39 Z" fill="#ffe08a"/><path d="M13 43 L19 49 L25 44 L30 50 L35 44 L41 49 L47 43 Q30 54 13 43 Z" fill="#ffe08a"/></svg>
+          <svg class="ic ic-nl" viewBox="0 0 60 60"><path d="M30 4 L33 12 L42 12 L35 17 L38 26 L30 21 L22 26 L25 17 L18 12 L27 12 Z" fill="#ffd98a"/><path d="M30 16 L45 36 L36 36 L50 54 L10 54 L24 36 L15 36 Z" fill="#1e9e5a"/><rect x="26" y="54" width="8" height="6" fill="#7a4a20"/><circle cx="26" cy="42" r="2.5" fill="#ff5a63"/><circle cx="35" cy="47" r="2.5" fill="#ffd98a"/><circle cx="29" cy="30" r="2" fill="#ff5a63"/></svg>
+          <svg class="ic ic-su" viewBox="0 0 60 60"><circle cx="30" cy="30" r="12" fill="#ffb02e"/><g stroke="#ffb02e" stroke-width="4" stroke-linecap="round"><path d="M30 6 V12 M30 48 V54 M6 30 H12 M48 30 H54 M13 13 L17 17 M43 43 L47 47 M47 13 L43 17 M17 43 L13 47"/></g></svg>
+        </div>
+        <div class="tipTx" id="tipTx"><h4 id="tipH">Redzone</h4></div>
+      </div>
+      <div class="tipTx" id="tipBody"><p id="tipP"></p></div>
+      <div class="tipBar"><i></i></div>
+    </div>
+  </div>
+
+  <div class="foot rise" style="animation-delay:.8s"><span>discord.gg/9hhhadhwAU</span><span>Appuie sur<kbd>F1</kbd>pour l'aide en jeu</span></div>
+  <div class="vign"></div>
+  <div class="edge" id="edge"></div>
+</div>
+</div>
+
+<div class="tools" id="tools" hidden>
+  <button id="bIce" class="act">Normal</button><button id="bHw">Halloween</button><button id="bNl">Noël</button><button id="bSu">Été</button>
+  <span class="sep"></span>
+  <button id="bBack" class="act">Joueur connu</button><button id="bNew">1re connexion</button>
+  <span class="sep"></span>
+  <button id="bRestart">Rejouer</button>
+  <label for="scrub">% <input type="range" id="scrub" min="0" max="100" value="0"></label>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function(){
+  var MOCKUP=false, THEME0='nl';
+  function el(id){return document.getElementById(id);}
+  var stage=el('stage');
+  function fit(){
+    var s=Math.min(window.innerWidth/1920,window.innerHeight/1080);
+    stage.style.transform='scale('+s+')';
+  }
+  window.addEventListener('resize',fit);fit();
+
+  var theme=THEME0,i,h='',m;
+  m=location.search.match(/[?&]theme=(ice|hw|nl|su)/);if(m)theme=m[1];
+
+  for(i=0;i<4;i++){h+='<div class="beam" style="left:'+(300+i*480)+'px;animation-delay:-'+(i*3.1)+'s;animation-duration:'+(11+i*2)+'s"></div>';}
+  el('beams').innerHTML=h;
+
+  // chauves-souris
+  var BATP='M50 14 C46 14 44 10 42 6 C40 10 38 16 34 18 C28 12 16 10 0 18 C8 20 10 26 12 34 C18 28 24 28 28 34 C34 30 42 32 50 44 C58 32 66 30 72 34 C76 28 82 28 88 34 C90 26 92 20 100 18 C84 10 72 12 66 18 C62 16 60 10 58 6 C56 10 54 14 50 14 Z';
+  var BATS=[[170,64,15,0],[330,100,19,-6],[470,48,13,-9],[640,86,21,-13],[260,56,17,-3],[760,70,16,-8]];
+  h='';
+  for(i=0;i<BATS.length;i++){var b=BATS[i];
+    h+='<div class="bat" style="top:'+b[0]+'px;width:'+b[1]+'px;animation-duration:'+b[2]+'s;animation-delay:'+b[3]+'s"><div style="animation-duration:'+(2.2+i*.4)+'s"><svg viewBox="0 0 100 50"><path d="'+BATP+'" fill="#08030f" stroke="rgba(200,150,255,.55)" stroke-width="1.4"/></svg></div></div>';}
+  el('bats').innerHTML=h;
+
+  // guirlande de Noel
+  (function(){
+    var SW=6,W=1920/SW,sag=64,base=-8,col=['#ff5a63','#ffd98a','#4be08a','#6fb4ff'],s='',d='',k,j,t,x0,x,y,n=0;
+    for(k=0;k<SW;k++){
+      x0=k*W;var cx=x0+W/2,cy=base+2*sag;
+      d+=(k?' ':'M'+x0+' '+base+' ')+'Q'+cx+' '+cy+' '+(x0+W)+' '+base;
+      for(j=1;j<8;j++){
+        t=j/8;x=(1-t)*(1-t)*x0+2*(1-t)*t*cx+t*t*(x0+W);y=(1-t)*(1-t)*base+2*(1-t)*t*cy+t*t*base;
+        var c=col[n%4];s+='<div class="bulb" style="left:'+x.toFixed(1)+'px;top:'+(y+2).toFixed(1)+'px;background:'+c+';box-shadow:0 0 14px '+c+';animation-delay:-'+((n*.37)%2.4).toFixed(2)+'s"></div>';n++;
+      }
+    }
+    el('garland').innerHTML='<svg width="1920" height="140" viewBox="0 0 1920 140" style="position:absolute;left:0;top:0"><path d="'+d+'" fill="none" stroke="#0c2a18" stroke-width="3"/></svg>'+s;
+  })();
+
+  var CFG={
+    ice:{pr:'255,250,235',kind:'mote',ed:null,
+      logs:[['CONN','Connexion au serveur établie'],['AUTH','Vérification de ton profil Steam'],['SYNC','Synchronisation des menus'],['SYNC','Préparation du HUD'],['SYNC','Chargement de la boutique'],['SYNC','Chargement des menus et du lobby'],['SYNC','Préparation des zones redzone'],['SYNC','Chargement du système de vote'],['SYNC','Chargement des véhicules'],['SYNC','Chargement des équipements et des armes'],['SYNC','Initialisation des sons et des effets'],['MAP ','Chargement de la carte'],['MAP ','Mise en place des entités'],['OK  ','Presque prêt']],
+      tips:[['Redzone',"Un vote de 30 secondes désigne la prochaine zone. Plus une zone a de votes, plus elle a de chances d'être tirée."],['Coins',"Tes kills dans la sphère rapportent des coins Redzone. Ils sont conservés d'une session à l'autre."],['Véhicules','Chaque zone a son propre véhicule. Approche du PNJ pour le sortir, puis appuie sur H pour le rappeler.'],['Boutique','Dépense tes coins dans la boutique pour débloquer de nouveaux équipements.'],['Respawn','Après une mort, tu réapparais au point de départ de la zone en cours.'],['Équipe','Reste groupé. Les zones sont larges et les embuscades viennent de partout.']]},
+    hw:{pr:'255,160,70',kind:'ember',ed:['Édition','Halloween'],
+      logs:[['CONN','Connexion au serveur établie'],['AUTH','Vérification de ton profil Steam'],['SYNC','Réveil des menus'],['SYNC','Allumage des citrouilles'],['SYNC','Dépoussiérage de la boutique'],['SYNC','Ouverture du lobby'],['SYNC','Préparation des zones redzone'],['SYNC','Chargement du système de vote'],['SYNC','Chargement des véhicules'],['SYNC','Aiguisage des armes'],['SYNC','Invocation des sons et des effets'],['MAP ','Ouverture du cimetière'],['MAP ','Placement des entités'],['OK  ','Presque prêt... si tu oses']],
+      tips:[['Redzone',"Un vote de 30 secondes désigne la prochaine zone. Plus une zone a de votes, plus elle a de chances d'être tirée."],['Coins',"Tes kills dans la sphère rapportent des coins Redzone. Ils sont conservés d'une session à l'autre."],['Ambiance',"Les lumières sont tamisées pour Halloween. Garde l'oeil ouvert, les embuscades viennent de partout."],['Boutique','Dépense tes coins dans la boutique pour débloquer de nouveaux équipements.'],['Respawn','Après une mort, tu réapparais au point de départ de la zone en cours.'],['Équipe','Reste groupé. Même les zombies chassent en meute.']]},
+    nl:{pr:'255,255,255',kind:'snow',ed:['Édition','Noël'],
+      logs:[['CONN','Connexion au serveur établie'],['AUTH','Vérification de ton profil Steam'],['SYNC','Synchronisation des menus'],['SYNC','Allumage des guirlandes'],['SYNC','Emballage de la boutique'],['SYNC','Ouverture du lobby'],['SYNC','Préparation des zones redzone'],['SYNC','Chargement du système de vote'],['SYNC','Déneigement des véhicules'],['SYNC','Chargement des équipements et des armes'],['SYNC','Réveil des cloches et des effets'],['MAP ','Chargement de la carte enneigée'],['MAP ','Mise en place des entités'],['OK  ','Presque prêt']],
+      tips:[['Redzone',"Un vote de 30 secondes désigne la prochaine zone. Plus une zone a de votes, plus elle a de chances d'être tirée."],['Coins',"Tes kills dans la sphère rapportent des coins Redzone. Ils sont conservés d'une session à l'autre."],['Ambiance','Les rues sont décorées pour Noël. Les embuscades, elles, ne prennent pas de vacances.'],['Boutique','Dépense tes coins dans la boutique pour débloquer de nouveaux équipements.'],['Respawn','Après une mort, tu réapparais au point de départ de la zone en cours.'],['Équipe','Reste groupé. Il fait froid, les équipes soudées tiennent plus longtemps.']]},
+    su:{pr:'255,236,170',kind:'spark',ed:['Édition','Été'],
+      logs:[['CONN','Connexion au serveur établie'],['AUTH','Vérification de ton profil Steam'],['SYNC','Synchronisation des menus'],['SYNC','Montage du bar à cocktails'],['SYNC','Ouverture de la boutique'],['SYNC','Ouverture du lobby'],['SYNC','Préparation des zones redzone'],['SYNC','Chargement du système de vote'],['SYNC','Chargement des véhicules'],['SYNC','Chargement des équipements et des armes'],['SYNC','Initialisation des sons et des effets'],['MAP ','Chargement de la carte'],['MAP ','Mise en place des entités'],['OK  ','Presque prêt']],
+      tips:[['Redzone',"Un vote de 30 secondes désigne la prochaine zone. Plus une zone a de votes, plus elle a de chances d'être tirée."],['Coins',"Tes kills dans la sphère rapportent des coins Redzone. Ils sont conservés d'une session à l'autre."],['Ambiance',"C'est l'été sur la ville. Hydrate-toi, mais garde un oeil sur tes arrières."],['Boutique','Dépense tes coins dans la boutique pour débloquer de nouveaux équipements.'],['Respawn','Après une mort, tu réapparais au point de départ de la zone en cours.'],['Équipe','Reste groupé. Les zones sont larges et les embuscades viennent de partout.']]}
+  };
+  var STEPS=['Connexion','Données','Ressources','Map','Prêt'];
+  var ZONES=[['Commissariat','1'],['Burger King','2'],['Mécano','3'],['Zone résidentielle','4'],['Autoroute','5'],['Zone industrielle','6']];
+
+  var stepsEl=el('steps'),zrow=el('zrow');
+  stepsEl.innerHTML=STEPS.map(function(s){return '<div class="step"><i></i>'+s+'</div>';}).join('');
+  zrow.innerHTML=ZONES.map(function(z){return '<div class="z"><i>'+z[1]+'</i>'+z[0]+'</div>';}).join('');
+  var stepEls=stepsEl.children,zEls=zrow.children;
+  var pctEl=el('pct'),fill=el('fill'),filesEl=el('files'),filesLbl=el('filesLbl'),edge=el('edge'),logEl=el('log');
+
+  var total=0,needed=0,statusFloor=0,target=0,shown=0,logIdx=0,tipIdx=0,zIdx=0;
+  var realMode=false,demo=null,demoSpeed=1,manual=false,manualVal=0;
+
+  /* ---------- profil du joueur ---------- */
+  // RD_PROFILE : {name:"pseudo RP ou Steam", first:true|false}. En jeu il vient d'un petit service (voir README), sinon "Opérateur".
+  var PROFILE=MOCKUP?{name:'Kael Dorsey',first:false}:{name:'',first:false};
+  function setProfile(p){
+    PROFILE=p;
+    var nm=(p.name||'Opérateur');
+    el('wName').textContent=nm;
+    el('avL').textContent=nm.charAt(0).toUpperCase();
+    el('wSub').innerHTML=p.first?'Première connexion sur <b>Rogue Directive</b>':(p.name?'Content de te revoir':'Prépare ton équipement');
+    el('wHi').textContent='Bienvenue,';
+  }
+  window.RD_SetProfile=function(name,first){setProfile({name:String(name||''),first:!!first});};
+
+  function applyTheme(t){
+    theme=t;stage.className=t;var c=CFG[t];
+    el('chipEd').style.display=c.ed?'flex':'none';
+    if(c.ed){el('edT').textContent=c.ed[0];el('edB').textContent=c.ed[1];}
+    tipIdx=0;el('tipH').textContent=c.tips[0][0];el('tipP').textContent=c.tips[0][1];
+    logIdx=0;logEl.innerHTML='';
+    if(MOCKUP){var ids={ice:'bIce',hw:'bHw',nl:'bNl',su:'bSu'};for(var k in ids)el(ids[k]).className=(k===t)?'act':'';}
+  }
+
+  /* ---------- particules ---------- */
+  var cv=el('bgc'),cx=cv.getContext('2d'),P=[],T=0;
+  for(i=0;i<170;i++)P.push({x:Math.random()*960,y:Math.random()*540,r:Math.random()*1.2+.4,v:Math.random()*.5+.15,a:Math.random()*.5+.3,ph:Math.random()*6.28,k:Math.random()});
+  function draw(){
+    var c=CFG[theme],kind=c.kind,k,p,col,tw,n=kind==='snow'?170:(kind==='ember'?110:70);
+    T+=.04;cx.clearRect(0,0,960,540);
+    for(k=0;k<n;k++){
+      p=P[k];
+      if(kind==='snow'){p.y+=p.v*1.4+.3;p.x+=Math.sin(T*.8+p.ph)*.5+.1;if(p.y>544){p.y=-4;p.x=Math.random()*960;}}
+      else if(kind==='ember'){p.y-=p.v*1.5;p.x+=Math.sin(T+p.ph)*.35+.1;if(p.y<-4){p.y=544;p.x=Math.random()*960;}}
+      else{p.y-=p.v*.35;p.x+=Math.sin(T*.5+p.ph)*.25+.05;if(p.y<-4){p.y=544;p.x=Math.random()*960;}}
+      if(p.x>964)p.x=-4;if(p.x<-4)p.x=964;
+      col=kind==='ember'?(p.k>.78?'190,130,255':(p.k>.3?'255,150,60':'255,200,110')):c.pr;
+      tw=p.a*(kind==='ember'||kind==='spark'?(.55+.45*Math.sin(T*3+p.ph)):1);
+      cx.beginPath();cx.arc(p.x,p.y,p.r*(kind==='snow'?(1+p.k*1.3):(kind==='ember'?1.3:(kind==='spark'?1.1:.9))),0,6.283);
+      cx.fillStyle='rgba('+col+','+tw.toFixed(3)+')';cx.fill();
+    }
+    setTimeout(draw,40);
+  }
+  draw();
+
+  /* ---------- progression ---------- */
+  function computeTarget(){
+    if(manual)return manualVal;
+    var t=statusFloor;
+    if(total>0){var f=(total-needed)/total;if(f<0)f=0;if(f>1)f=1;t=Math.max(t,.1+f*.75);}
+    return t>1?1:t;
+  }
+  function render(){
+    var v=Math.round(shown*100);
+    pctEl.textContent=v;fill.style.width=(shown*100)+'%';edge.style.width=(shown*100)+'%';
+    if(total>0){filesEl.textContent=(total-needed)+' / '+total;filesLbl.textContent='fichiers synchronisés';}
+    else{filesEl.textContent=v+' %';filesLbl.textContent='préparation';}
+    var cur=shown<.08?0:shown<.6?1:shown<.8?2:shown<.95?3:4;
+    for(var k=0;k<stepEls.length;k++){stepEls[k].className='step'+(k<cur?' done':k===cur?' on':'');}
+    if(shown>=.999)stepEls[4].className='step done';
+    var LOGS=CFG[theme].logs,want=Math.min(LOGS.length,Math.floor(shown*LOGS.length)+1);
+    while(logIdx<want){
+      var l=LOGS[logIdx++],d=document.createElement('div');
+      d.innerHTML='<b>'+l[0]+'</b>'+l[1];logEl.appendChild(d);
+      while(logEl.children.length>2)logEl.removeChild(logEl.firstChild);
+    }
+  }
+  function loop(){
+    target=computeTarget();
+    if(shown<target){shown+=(target-shown)*.12+.0006;if(shown>target)shown=target;}
+    else if(shown>target+.03){shown+=(target+.03-shown)*.08;}
+    else if(realMode&&shown<.97){shown+=.00025;}
+    render();setTimeout(loop,60);
+  }
+  function showTip(){
+    var a=el('tipTx'),b=el('tipBody');a.className='tipTx out';b.className='tipTx out';
+    setTimeout(function(){
+      var TIPS=CFG[theme].tips;tipIdx=(tipIdx+1)%TIPS.length;
+      el('tipH').textContent=TIPS[tipIdx][0];el('tipP').textContent=TIPS[tipIdx][1];
+      a.className='tipTx';b.className='tipTx';
+    },400);
+  }
+  function showZone(){
+    for(var k=0;k<zEls.length;k++)zEls[k].className='z'+(k===zIdx?' on':'');
+    zIdx=(zIdx+1)%zEls.length;
+  }
+  setInterval(showTip,5500);setInterval(showZone,2600);
+
+  function stopDemo(){if(demo){clearTimeout(demo);demo=null;}}
+  function goReal(){if(!realMode){realMode=true;manual=false;stopDemo();}}
+  window.GameDetails=function(servername,serverurl,mapname,maxplayers,steamid,gamemode){
+    goReal();
+    if(mapname)el('mapName').textContent=mapname;
+    if(maxplayers)el('plys').textContent=maxplayers;
+    if(window.RD_PROFILE_URL&&steamid&&window.fetch){
+      fetch(window.RD_PROFILE_URL+encodeURIComponent(steamid)).then(function(r){return r.json();}).then(function(j){if(j&&j.ok!==false)setProfile({name:String(j.name||''),first:!!j.first});}).catch(function(){});
+    }
+  };
+  window.SetFilesTotal=function(n){goReal();total=parseInt(n,10)||0;};
+  window.SetFilesNeeded=function(n){goReal();needed=parseInt(n,10)||0;};
+  window.DownloadingFile=function(name){goReal();}; // volontairement ignore : aucun nom de fichier affiche
+  window.SetStatusChanged=function(status){
+    goReal();
+    var s=String(status||'').toLowerCase(),f=statusFloor;
+    if(s.indexOf('retriev')>-1)f=.04;
+    else if(s.indexOf('sending')>-1||s.indexOf('client info')>-1)f=.08;
+    else if(s.indexOf('mount')>-1||s.indexOf('workshop')>-1)f=.6;
+    else if(s.indexOf('lua')>-1||s.indexOf('starting')>-1)f=.85;
+    else if(s.indexOf('complete')>-1||s.indexOf('sent')>-1||s.indexOf('ready')>-1)f=.93;
+    if(f>statusFloor)statusFloor=f;
+  };
+  function startDemo(){
+    stopDemo();manual=false;total=248;needed=248;statusFloor=0;shown=0;logIdx=0;logEl.innerHTML='';
+    el('mapName').textContent='rp_redzone_city';el('plys').textContent='64';
+    var done=0;
+    (function tick(){
+      if(Math.random()>.18)done=Math.min(total,done+Math.round((Math.random()*7+1)*demoSpeed));
+      needed=total-done;if(done<total)demo=setTimeout(tick,120);
+    })();
+  }
+
+  applyTheme(theme);setProfile(PROFILE);showZone();
+  if(MOCKUP||/[?&]demo/.test(location.search)){
+    el('tools').hidden=false;
+    el('bRestart').onclick=function(){realMode=false;demoSpeed=1;startDemo();};
+    el('bIce').onclick=function(){applyTheme('ice');};
+    el('bHw').onclick=function(){applyTheme('hw');};
+    el('bNl').onclick=function(){applyTheme('nl');};
+    el('bSu').onclick=function(){applyTheme('su');};
+    el('bBack').onclick=function(){setProfile({name:'Kael Dorsey',first:false});el('bBack').className='act';el('bNew').className='';};
+    el('bNew').onclick=function(){setProfile({name:'NomadeSteam',first:true});el('bNew').className='act';el('bBack').className='';};
+    el('scrub').oninput=function(){
+      stopDemo();realMode=false;manual=true;manualVal=this.value/100;total=0;statusFloor=0;shown=manualVal;logIdx=0;logEl.innerHTML='';
+    };
+  }
+  loop();
+  setTimeout(function(){if(!realMode&&!demo&&!manual)startDemo();},MOCKUP?600:2500);
+})();
+</script></body></html>
